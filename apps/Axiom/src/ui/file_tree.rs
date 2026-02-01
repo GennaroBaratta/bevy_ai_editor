@@ -16,13 +16,8 @@ pub struct FileTreeState {
 
 impl Default for FileTreeState {
     fn default() -> Self {
-        // Try D:\workspace first, fallback to CWD
-        let default_workspace = PathBuf::from(r"D:\workspace");
-        let cwd = if default_workspace.exists() && default_workspace.is_dir() {
-            default_workspace
-        } else {
-            std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
-        };
+        // Try to start at the current working directory (project root)
+        let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
 
         Self {
             root_path: cwd.clone(),
