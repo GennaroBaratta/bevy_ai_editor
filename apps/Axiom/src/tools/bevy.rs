@@ -33,6 +33,10 @@ impl Tool for BevyUploadAssetTool {
                             "type": "string",
                             "description": "Absolute path to the local file on the editor machine."
                         },
+                        "relative_path": {
+                            "type": "string",
+                            "description": "Optional relative subdirectory in the game's asset cache (e.g. 'Textures')."
+                        },
                         "translation": {
                             "type": "array",
                             "items": { "type": "number" },
@@ -52,6 +56,11 @@ impl Tool for BevyUploadAssetTool {
             .get("local_path")
             .and_then(|v| v.as_str())
             .ok_or(anyhow!("Missing local_path"))?;
+
+        let relative_path = args
+            .get("relative_path")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
 
         let t = args
             .get("translation")
@@ -92,7 +101,8 @@ impl Tool for BevyUploadAssetTool {
                 "components": {
                     "bevy_ai_remote::AxiomRemoteAsset": {
                         "filename": filename,
-                        "data_base64": b64_data
+                        "data_base64": b64_data,
+                        "subdir": relative_path
                     },
                     "bevy_transform::components::transform::Transform": {
                         "translation": [tx, ty, tz],

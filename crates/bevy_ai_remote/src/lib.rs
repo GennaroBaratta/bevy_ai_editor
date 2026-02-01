@@ -21,6 +21,8 @@ pub struct AxiomPrimitive {
 pub struct AxiomRemoteAsset {
     pub filename: String,
     pub data_base64: String,
+    // Optional sub-path relative to _remote_cache (e.g., "Textures")
+    pub subdir: Option<String>,
 }
 
 /// Add this plugin to your Bevy app to enable remote control via Axiom.
@@ -101,10 +103,18 @@ fn handle_remote_assets(
         };
 
         // 2. Ensure cache directory exists
-        let cache_dir = Path::new("assets/_remote_cache");
+        let mut cache_dir = Path::new("assets/_remote_cache").to_path_buf();
+
+        // Handle subdirectory if provided
+        if let Some(sub) = &asset.subdir {
+            if !sub.is_empty() {
+                cache_dir = cache_dir.join(sub);
+            }
+        }
+
         if !cache_dir.exists() {
-            if let Err(e) = std::fs::create_dir_all(cache_dir) {
-                error!("Failed to create cache dir: {}", e);
+            if let Err(e) = std::fs::create_dir_all(&cache_dir) {
+                error!("Failed to create cache dir {:?}: {}", cache_dir, e);
                 continue;
             }
         }
@@ -128,13 +138,28 @@ fn handle_remote_assets(
 
         // 4. Load the asset using AssetServer
         // Note: AssetServer paths are relative to "assets" folder
-        let relative_path = format!("_remote_cache/{}#Scene0", asset.filename);
-        let scene_handle: Handle<Scene> = asset_server.load(relative_path);
+        // We need to construct the path relative to "assets"
+        let mut relative_path_str = "_remote_cache".to_string();
+        if let Some(sub) = &asset.subdir {
+            if !sub.is_empty() {
+                relative_path_str = format!("{}/{}", relative_path_str, sub);
+            }
+        }
+        relative_path_str = format!("{}/{}", relative_path_str, asset.filename);
 
-        // 5. Attach SceneRoot to the entity
-        commands.entity(entity).insert(SceneRoot(scene_handle));
-
-        // Optional: Remove the raw data component to save memory, or keep it for debugging
-        // commands.entity(entity).remove::<AxiomRemoteAsset>();
+        // Only load as Scene if it's a model file. If it's a texture, we just write it and stop.
+        if asset.filename.ends_with(".glb") || asset.filename.ends_with(".gltf") {
+            let scene_path = format!("{}#Scene0", relative_path_str);
+            info!("Loading scene from: {}", scene_path);
+            let scene_handle: Handle<Scene> = asset_server.load(scene_path);
+            // 5. Attach SceneRoot to the entity
+            commands.entity(entity).insert(SceneRoot(scene_handle));
+        } else {
+            info!("Saved auxiliary asset (texture/bin), not spawning SceneRoot.");
+            // Just cleanup the component so it doesn't stay on the entity forever
+            commands.entity(entity).remove::<AxiomRemoteAsset>();
+            // Also despawn the entity itself if it has no other components, to keep hierarchy clean
+            // commands.entity(entity).despawn();
+        }
     }
 }
