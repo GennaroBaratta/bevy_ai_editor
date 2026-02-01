@@ -1,0 +1,11 @@
+[package]
+name = "bevy_ai_remote"
+version = "0.1.0"
+edition = "2021"
+description = "Bevy plugin to enable AI-controlled editing via Axiom"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+bevy = { version = "0.15", default-features = false } # Users usually provide bevy, but we need it to compile the plugin
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

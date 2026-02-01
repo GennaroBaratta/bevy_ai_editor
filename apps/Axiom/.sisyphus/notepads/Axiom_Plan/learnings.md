@@ -1,0 +1,11 @@
+# Learnings
+- `reqwest` requires explicit `json` feature to use `.json()` method on RequestBuilder.
+- `eframe` 0.29 requires careful handling of async/await; spawning a thread or using `tokio::runtime` inside the app struct is a solid pattern for handling network requests without blocking the UI.
+- `egui` immediate mode requires `ctx.request_repaint()` when state updates from background threads to ensure UI responsiveness.
+- `arboard` provides a cross-platform way to access clipboard images.
+- `egui` requires `egui_extras` with `all_loaders` feature to render data URIs (`data:image/png;base64,...`).
+- `image` crate is useful for converting raw clipboard bytes (often RGBA) into PNG format suitable for LLM APIs.
+- Storing images as Base64 strings in memory is simple but can increase memory usage for large histories. For a local app, it's acceptable.
+- `ctx.input(...)` is the way to detect global shortcuts like Ctrl+V in egui.
+- `egui::Image::from_uri` handles data URIs seamlessly once loaders are installed.
+- To intercept `Paste` events before `TextEdit` consumes them (e.g. for image pasting), check `ctx.input(|i| i.events.iter()...)` at the start of `update` and consume the event via `ctx.input_mut(|i| i.events.retain(...))` if handled.
