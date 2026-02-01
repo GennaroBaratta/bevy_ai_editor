@@ -1,8 +1,124 @@
 use crate::tools::Tool;
 use anyhow::{anyhow, Result};
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use serde_json::{json, Value};
+use std::fs::File;
+use std::io::Read;
+use std::path::Path;
 
 const BEVY_RPC_URL: &str = "http://127.0.0.1:15721";
+
+/// Tool to upload a local file to Bevy via BRP and spawn it
+pub struct BevyUploadAssetTool;
+
+impl Tool for BevyUploadAssetTool {
+    fn name(&self) -> String {
+        "bevy_upload_asset".to_string()
+    }
+
+    fn description(&self) -> String {
+        "Upload a local asset file (e.g., .glb) to Bevy and spawn it. Encodes file as Base64 and sends via 'AxiomRemoteAsset'.".to_string()
+    }
+
+    fn schema(&self) -> Value {
+        json!({
+            "type": "function",
+            "function": {
+                "name": "bevy_upload_asset",
+                "description": "Upload and spawn a local asset file.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "local_path": {
+                            "type": "string",
+                            "description": "Absolute path to the local file on the editor machine."
+                        },
+                        "translation": {
+                            "type": "array",
+                            "items": { "type": "number" },
+                            "minItems": 3,
+                            "maxItems": 3,
+                            "description": "[x, y, z] position"
+                        }
+                    },
+                    "required": ["local_path", "translation"]
+                }
+            }
+        })
+    }
+
+    fn execute(&self, args: Value) -> Result<String> {
+        let local_path = args
+            .get("local_path")
+            .and_then(|v| v.as_str())
+            .ok_or(anyhow!("Missing local_path"))?;
+
+        let t = args
+            .get("translation")
+            .and_then(|v| v.as_array())
+            .ok_or(anyhow!("Missing translation"))?;
+
+        let tx = t.get(0).and_then(|v| v.as_f64()).unwrap_or(0.0);
+        let ty = t.get(1).and_then(|v| v.as_f64()).unwrap_or(0.0);
+        let tz = t.get(2).and_then(|v| v.as_f64()).unwrap_or(0.0);
+
+        // 1. Read file
+        let path = Path::new(local_path);
+        let filename = path
+            .file_name()
+            .ok_or(anyhow!("Invalid filename"))?
+            .to_string_lossy()
+            .to_string();
+
+        let mut file = File::open(path)?;
+        let mut buffer = Vec::new();
+        file.read_to_end(&mut buffer)?;
+
+        // 2. Encode to Base64
+        let b64_data = BASE64.encode(&buffer);
+
+        println!(
+            "[BevyTool] Uploading {} ({} bytes) ...",
+            filename,
+            buffer.len()
+        );
+
+        // 3. Send Payload
+        let payload = json!({
+            "jsonrpc": "2.0",
+            "method": "world.spawn_entity",
+            "id": 1,
+            "params": {
+                "components": {
+                    "bevy_ai_remote::AxiomRemoteAsset": {
+                        "filename": filename,
+                        "data_base64": b64_data
+                    },
+                    "bevy_transform::components::transform::Transform": {
+                        "translation": [tx, ty, tz],
+                        "rotation": [0.0, 0.0, 0.0, 1.0],
+                        "scale": [1.0, 1.0, 1.0]
+                    }
+                }
+            }
+        });
+
+        // Use a longer timeout for large files
+        let agent = ureq::AgentBuilder::new()
+            .timeout_read(std::time::Duration::from_secs(10))
+            .timeout_write(std::time::Duration::from_secs(10))
+            .build();
+
+        match agent.post(BEVY_RPC_URL).send_json(payload) {
+            Ok(res) => Ok(format!(
+                "Uploaded and Spawned {}. Response: {}",
+                filename,
+                res.status()
+            )),
+            Err(e) => Err(anyhow!("Failed to upload asset: {}", e)),
+        }
+    }
+}
 
 /// Generic JSON-RPC Tool for Bevy Remote
 pub struct BevyRpcTool;
