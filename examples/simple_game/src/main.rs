@@ -28,7 +28,7 @@ fn camera_controller(
     let speed = 10.0;
     let mut velocity = Vec3::ZERO;
 
-    if let Ok(mut transform) = query.get_single_mut() {
+    for mut transform in query.iter_mut() {
         // Forward/Backward (Z) - Relative to camera rotation? No, let's do simple World space first for stability,
         // or local space if we want to "fly".
         // Let's do local space (Fly).
@@ -59,6 +59,8 @@ fn camera_controller(
             let translation = velocity.normalize() * speed * time.delta_secs();
             transform.translation += translation;
         }
+        // Break after first camera if we only want to control one (though loop works for all)
+        // break;
     }
 }
 
