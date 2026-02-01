@@ -3,8 +3,6 @@
 **Axiom** is a next-generation, AI-native editor for the [Bevy Game Engine](https://bevyengine.org/). 
 It allows you to build game levels, spawn assets, and manipulate the scene using natural language commands, powered by LLMs (Gemini).
 
-![Axiom Screenshot](docs/screenshot.png) *(Place a screenshot here later)*
-
 ## 🚀 Key Features
 
 *   **🤖 AI Architect**: Instruct the AI to "Build a 5x5 road grid" or "Place a forest here", and watch it happen instantly.
