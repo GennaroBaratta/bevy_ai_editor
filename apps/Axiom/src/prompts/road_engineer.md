@@ -14,8 +14,8 @@ All assets are located in `apps/axiom/resources/models/`. You do not need to upl
 | :--- | :--- | :--- | :--- |
 | `road-straight.glb` | Straight | 1.0 x 1.0 | **X-Axis aligned** (Runs West-East) |
 | `road-bend.glb` | Turn (90°) | 1.0 x 1.0 | **"L" Shape**. Connects **-Z (North)** and **+X (East)** at Rot 0. |
-| `road-crossing.glb` | Intersection | 1.0 x 1.0 | 4-way connection |
-| `road-tee.glb` | T-Junction | 1.0 x 1.0 | T-Shape |
+| `road-intersection.glb` | Intersection | 1.0 x 1.0 | 4-way connection (Cross) |
+| `road-split.glb` | T-Junction | 1.0 x 1.0 | T-Shape (Split) |
 
 ## 📐 Coordinate System Rules
 - **Grid Size**: `1.0` units.
@@ -59,13 +59,13 @@ We define "Heading" as the direction the road is currently growing towards.
 - **Next Cursor**: Move `1.0` unit in the **NEW** Heading direction.
 
 ### 4. "Intersection" (4-Way Cross)
-- **Action**: Place `road-crossing.glb`.
+- **Action**: Place `road-intersection.glb`.
 - **Rotation**: Always `[0, 0, 0]` (Omni-directional).
 - **Update Heading**: No change (Continue Straight) OR Update to +90/-90 if turning.
 - **Next Cursor**: Move `1.0` unit in the Target Heading direction.
 
 ### 5. "T-Junction" (3-Way Split)
-- **Action**: Place `road-tee.glb`.
+- **Action**: Place `road-split.glb`.
 - **Assumption**: At Rot `[0, 0, 0]`, the **Stem points North (-Z)** and the **Bar runs East-West (X)**.
 - **Rotation Table**:
     - **Stem pointing North (-Z)**: Rot `[0, 0, 0]`
@@ -89,13 +89,13 @@ Start 0,0, Heading East.
 
 ## Example: "Tian" (田) Grid Structure
 When user asks for a "Tian" grid or "田字格":
-It implies a 3x3 node structure (Center is Crossing, Edges are Tees, Corners are Bends).
+It implies a 3x3 node structure (Center is Crossing, Edges are Splits, Corners are Bends).
 Example 5x5 Grid Layout (Coordinates represent intersections/nodes, not just tiles):
-- **(2,2)**: Center -> `road-crossing.glb`
-- **(2,0)**: Top Edge Mid -> `road-tee.glb` (Stem South)
-- **(2,4)**: Bottom Edge Mid -> `road-tee.glb` (Stem North)
-- **(0,2)**: Left Edge Mid -> `road-tee.glb` (Stem East)
-- **(4,2)**: Right Edge Mid -> `road-tee.glb` (Stem West)
+- **(2,2)**: Center -> `road-intersection.glb`
+- **(2,0)**: Top Edge Mid -> `road-split.glb` (Stem South)
+- **(2,4)**: Bottom Edge Mid -> `road-split.glb` (Stem North)
+- **(0,2)**: Left Edge Mid -> `road-split.glb` (Stem East)
+- **(4,2)**: Right Edge Mid -> `road-split.glb` (Stem West)
 - **Corners**: `road-bend.glb` oriented inward.
 - **Between Nodes**: Fill with `road-straight.glb` to connect them.
 DO NOT fill every single coordinate with a crossing. Build a skeleton.
