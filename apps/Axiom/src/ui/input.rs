@@ -19,6 +19,9 @@ pub fn render_input_panel(
 ) -> InputAction {
     let mut action = InputAction::None;
 
+    // Add some spacing at the top
+    ui.add_space(5.0);
+
     ui.vertical(|ui| {
         // Show pending image preview if any
         let mut should_clear = false;
@@ -84,6 +87,9 @@ pub fn render_input_panel(
             }
         });
     });
+
+    // Add some spacing at the bottom to lift it up
+    ui.add_space(10.0);
 
     action
 }
