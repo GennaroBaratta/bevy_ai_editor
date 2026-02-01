@@ -85,8 +85,11 @@ impl AxiomApp {
             cc.egui_ctx.set_fonts(fonts);
         }
 
-        let (tx, rx) = channel();
+    let (tx, rx) = channel();
         let rt = Runtime::new().expect("Failed to create Tokio runtime");
+        
+        // Initialize dotenv
+        dotenv::dotenv().ok();
         
         let api_key = std::env::var("GEMINI_API_KEY")
             .unwrap_or_else(|_| "sk-4a1a669dd42845c2b9c241207080b13a".to_string());

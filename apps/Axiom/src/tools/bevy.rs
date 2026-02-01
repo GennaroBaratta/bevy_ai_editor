@@ -448,12 +448,6 @@ impl Tool for BevyClearSceneTool {
         if let Some(result) = body.get("result").and_then(|r| r.as_array()) {
             for entity_info in result {
                 if let Some(entity_id) = entity_info.get("entity").and_then(|e| e.as_u64()) {
-                    // Despawn entity
-                    // Skip entity 0 (World) or key system entities if possible?
-                    // BRP usually returns everything. Despawning Camera/Light might be bad if not respawned.
-                    // For now, let's try to despawn everything and rely on the user to "setup" again,
-                    // OR filter by component if possible. BRP list output contains components.
-
                     let components = entity_info.get("components").and_then(|c| c.as_array());
 
                     // Filter: Only despawn entities that have "SceneRoot" component
