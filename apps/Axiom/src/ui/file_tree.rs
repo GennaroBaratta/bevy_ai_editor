@@ -16,23 +16,23 @@ pub struct FileTreeState {
 
 impl Default for FileTreeState {
     fn default() -> Self {
-        // Start at apps/axiom/resources by default for better UX
+        // Start at apps/axiom/resources/models by default for better UX
         let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-        let default_root = cwd.join("apps").join("axiom").join("resources");
+        let default_root = cwd
+            .join("apps")
+            .join("axiom")
+            .join("resources")
+            .join("models");
 
-        // Fallback to CWD if that specific path doesn't exist
+        // Fallback to resources if models doesn't exist
         let root = if default_root.exists() {
             default_root
         } else {
-            cwd.clone()
+            cwd.join("apps").join("axiom").join("resources")
         };
 
-        let mut expanded = HashSet::new();
-        // If we are deep inside, expand the models folder
-        let models_path = root.join("models");
-        if models_path.exists() {
-            expanded.insert(models_path);
-        }
+        // No need to expand further as we are already deep
+        let expanded = HashSet::new();
 
         Self {
             root_path: root.clone(),
