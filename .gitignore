@@ -18,3 +18,13 @@ Cargo.lock
 .idea/
 *.swp
 node_modules/
+
+# Environment Variables (Keep safe!)
+.env
+
+# Runtime Data & Logs
+apps/axiom/db/
+apps/axiom/output.json
+apps/axiom/entity_list.json
+**/*.log
+_remote_cache/
