@@ -455,32 +455,31 @@ impl Tool for BevyClearSceneTool {
                     // OR filter by component if possible. BRP list output contains components.
 
                     let components = entity_info.get("components").and_then(|c| c.as_array());
-                    let has_transform = components
+
+                    // Filter: Only despawn entities that have "SceneRoot" component
+                    // This targets our GLB models while sparing Camera, Lights, and System entities.
+                    let should_despawn = components
                         .map(|c| {
-                            c.iter()
-                                .any(|v| v == "bevy_transform::components::transform::Transform")
+                            c.iter().any(|v| {
+                                v.as_str().map(|s| s.contains("SceneRoot")).unwrap_or(false)
+                            })
                         })
                         .unwrap_or(false);
 
-                    // Safe guard: Only despawn things with Transform (likely game objects)
-                    // And maybe exclude Camera/Light?
-                    // Let's just nuke it. It's a "Clear Scene" button.
+                    if should_despawn {
+                        println!("[BevyTool] Despawning entity: {}", entity_id);
 
-                    println!(
-                        "[BevyTool] Despawning entity: {} (Has Transform: {})",
-                        entity_id, has_transform
-                    );
-
-                    let despawn_payload = json!({
-                        "jsonrpc": "2.0",
-                        "method": "bevy/despawn",
-                        "id": 1,
-                        "params": {
-                            "entity": entity_id
-                        }
-                    });
-                    let _ = ureq::post(BEVY_RPC_URL).send_json(despawn_payload);
-                    count += 1;
+                        let despawn_payload = json!({
+                            "jsonrpc": "2.0",
+                            "method": "bevy/despawn",
+                            "id": 1,
+                            "params": {
+                                "entity": entity_id
+                            }
+                        });
+                        let _ = ureq::post(BEVY_RPC_URL).send_json(despawn_payload);
+                        count += 1;
+                    }
                 }
             }
         }
