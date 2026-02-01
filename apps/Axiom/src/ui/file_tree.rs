@@ -16,9 +16,9 @@ pub struct FileTreeState {
 
 impl Default for FileTreeState {
     fn default() -> Self {
-        // Start at apps/axiom/assets by default for better UX
+        // Start at apps/axiom/resources by default for better UX
         let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-        let default_root = cwd.join("apps").join("axiom").join("assets");
+        let default_root = cwd.join("apps").join("axiom").join("resources");
 
         // Fallback to CWD if that specific path doesn't exist
         let root = if default_root.exists() {
