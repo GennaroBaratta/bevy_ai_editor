@@ -99,12 +99,48 @@ impl Tool for BevyUploadAssetTool {
         // 1. Read file
         let path = Path::new(local_path);
 
-        // Ensure absolute path resolution
-        let abs_path = if path.is_absolute() {
+        // Smart Path Resolution Strategy
+        // 1. Try absolute path or raw path provided by user
+        let mut abs_path = if path.is_absolute() {
             path.to_path_buf()
         } else {
             std::env::current_dir()?.join(path)
         };
+
+        // 2. If not found, try fallback: apps/axiom/resources/models/{filename}
+        if !abs_path.exists() {
+            if let Some(name) = path.file_name() {
+                let fallback_models = std::env::current_dir()?
+                    .join("apps")
+                    .join("axiom")
+                    .join("resources")
+                    .join("models")
+                    .join(name);
+
+                if fallback_models.exists() {
+                    println!(
+                        "[BevyTool] Path not found, falling back to: {:?}",
+                        fallback_models
+                    );
+                    abs_path = fallback_models;
+                } else {
+                    // 3. If not found, try fallback: apps/axiom/resources/{filename}
+                    let fallback_resources = std::env::current_dir()?
+                        .join("apps")
+                        .join("axiom")
+                        .join("resources")
+                        .join(name);
+
+                    if fallback_resources.exists() {
+                        println!(
+                            "[BevyTool] Path not found, falling back to: {:?}",
+                            fallback_resources
+                        );
+                        abs_path = fallback_resources;
+                    }
+                }
+            }
+        }
 
         let filename = path
             .file_name()
