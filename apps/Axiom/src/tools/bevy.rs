@@ -477,6 +477,7 @@ impl Tool for BevyClearSceneTool {
                                 "entity": entity_id
                             }
                         });
+
                         let _ = ureq::post(BEVY_RPC_URL).send_json(despawn_payload);
                         count += 1;
                     }
