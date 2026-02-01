@@ -36,21 +36,21 @@ We define "Heading" as the direction the road is currently growing towards.
 
 ### 2. "Turn Right" (Clockwise 90°)
 - **Action**: Place `road-bend.glb`.
-- **Rotation Table (Verified Visuals)**:
-    - Heading **East (+X)** -> Turn South (+Z): **Rot `[0, 180, 0]`**
-    - Heading **South (+Z)** -> Turn West (-X): **Rot `[0, 90, 0]`**
-    - Heading **West (-X)** -> Turn North (-Z): **Rot `[0, 0, 0]`**
-    - Heading **North (-Z)** -> Turn East (+X): **Rot `[0, 270, 0]`** (or -90)
+- **Rotation Table (Calibrated +180 deg)**:
+    - Heading **East (+X)** -> Turn South (+Z): **Rot `[0, 0, 0]`**
+    - Heading **South (+Z)** -> Turn West (-X): **Rot `[0, 270, 0]`** (or -90)
+    - Heading **West (-X)** -> Turn North (-Z): **Rot `[0, 180, 0]`**
+    - Heading **North (-Z)** -> Turn East (+X): **Rot `[0, 90, 0]`**
 - **Update Heading**: +90 degrees (e.g., East -> South).
 - **Next Cursor**: Move `1.0` unit in the **NEW** Heading direction.
 
 ### 3. "Turn Left" (Counter-Clockwise 90°)
 - **Action**: Place `road-bend.glb`.
-- **Rotation Table**:
-    - Heading **East (+X)** -> Turn North (-Z): **Rot `[0, 270, 0]`**
-    - Heading **North (-Z)** -> Turn West (-X): **Rot `[0, 180, 0]`**
-    - Heading **West (-X)** -> Turn South (+Z): **Rot `[0, 90, 0]`**
-    - Heading **South (+Z)** -> Turn East (+X): **Rot `[0, 0, 0]`**
+- **Rotation Table (Calibrated +180 deg)**:
+    - Heading **East (+X)** -> Turn North (-Z): **Rot `[0, 90, 0]`**
+    - Heading **North (-Z)** -> Turn West (-X): **Rot `[0, 0, 0]`**
+    - Heading **West (-X)** -> Turn South (+Z): **Rot `[0, 270, 0]`**
+    - Heading **South (+Z)** -> Turn East (+X): **Rot `[0, 180, 0]`**
 - **Update Heading**: -90 degrees.
 - **Next Cursor**: Move `1.0` unit in the **NEW** Heading direction.
 
@@ -62,7 +62,7 @@ We define "Heading" as the direction the road is currently growing towards.
 ## Example: 2x2 Loop (Clockwise)
 Start 0,0, Heading East.
 1. `road-straight` at 0,0. Rot [0,0,0]. (Pos becomes 1,0)
-2. `road-bend` at 1,0. **East->South**. Rot **[0,180,0]**. (Pos becomes 1,1, Heading South)
-3. `road-bend` at 1,1. **South->West**. Rot **[0,90,0]**. (Pos becomes 0,1, Heading West)
-4. `road-bend` at 0,1. **West->North**. Rot **[0,0,0]**. (Pos becomes 0,0, Heading North)
-5. `road-bend` at 0,0. **North->East**. Rot **[0,270,0]**. (Loop Closed)
+2. `road-bend` at 1,0. **East->South**. Rot **[0,0,0]**. (Pos becomes 1,1, Heading South)
+3. `road-bend` at 1,1. **South->West**. Rot **[0,270,0]**. (Pos becomes 0,1, Heading West)
+4. `road-bend` at 0,1. **West->North**. Rot **[0,180,0]**. (Pos becomes 0,0, Heading North)
+5. `road-bend` at 0,0. **North->East**. Rot **[0,90,0]**. (Loop Closed)
