@@ -1,6 +1,8 @@
 [workspace]
 members = [
     "crates/bevy_ai_remote",
-    "apps/axiom"
+    "apps/axiom",
+    "examples/simple_game"
 ]
 resolver = "2"
+

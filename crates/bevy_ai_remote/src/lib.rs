@@ -18,11 +18,13 @@ impl Plugin for BevyAiRemotePlugin {
         if !app.is_plugin_added::<RemotePlugin>() {
             app.add_plugins(RemotePlugin::default());
         }
+        use std::net::IpAddr;
+
         // Ensure HTTP transport is enabled with correct config
         if !app.is_plugin_added::<RemoteHttpPlugin>() {
             app.add_plugins(
                 RemoteHttpPlugin::default()
-                    .with_address("127.0.0.1".parse().unwrap())
+                    .with_address("127.0.0.1".parse::<IpAddr>().unwrap())
                     .with_port(15721),
             );
         }
