@@ -1,6 +1,7 @@
 use crate::tools::Tool;
 use anyhow::{anyhow, Result};
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
+use glam::{Quat, Vec3};
 use serde_json::{json, Value};
 use std::fs::File;
 use std::io::Read;
@@ -43,6 +44,13 @@ impl Tool for BevyUploadAssetTool {
                             "minItems": 3,
                             "maxItems": 3,
                             "description": "[x, y, z] position"
+                        },
+                        "rotation": {
+                            "type": "array",
+                            "items": { "type": "number" },
+                            "minItems": 3,
+                            "maxItems": 3,
+                            "description": "[x, y, z] rotation in Euler angles (Degrees). e.g. [0, 90, 0] to rotate 90 deg around Y axis."
                         }
                     },
                     "required": ["local_path", "translation"]
@@ -70,6 +78,23 @@ impl Tool for BevyUploadAssetTool {
         let tx = t.get(0).and_then(|v| v.as_f64()).unwrap_or(0.0);
         let ty = t.get(1).and_then(|v| v.as_f64()).unwrap_or(0.0);
         let tz = t.get(2).and_then(|v| v.as_f64()).unwrap_or(0.0);
+
+        // Handle Rotation
+        let rotation_quat = if let Some(rot_arr) = args.get("rotation").and_then(|v| v.as_array()) {
+            let rx = rot_arr.get(0).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
+            let ry = rot_arr.get(1).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
+            let rz = rot_arr.get(2).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
+
+            // Convert Degrees to Radians and create Quat
+            Quat::from_euler(
+                glam::EulerRot::XYZ,
+                rx.to_radians(),
+                ry.to_radians(),
+                rz.to_radians(),
+            )
+        } else {
+            Quat::IDENTITY
+        };
 
         // 1. Read file
         let path = Path::new(local_path);
@@ -115,7 +140,7 @@ impl Tool for BevyUploadAssetTool {
                     },
                     "bevy_transform::components::transform::Transform": {
                         "translation": [tx, ty, tz],
-                        "rotation": [0.0, 0.0, 0.0, 1.0],
+                        "rotation": [rotation_quat.x, rotation_quat.y, rotation_quat.z, rotation_quat.w],
                         "scale": [1.0, 1.0, 1.0]
                     }
                 }
