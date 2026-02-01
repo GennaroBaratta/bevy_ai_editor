@@ -73,13 +73,22 @@ impl Tool for BevyUploadAssetTool {
 
         // 1. Read file
         let path = Path::new(local_path);
+
+        // Ensure absolute path resolution
+        let abs_path = if path.is_absolute() {
+            path.to_path_buf()
+        } else {
+            std::env::current_dir()?.join(path)
+        };
+
         let filename = path
             .file_name()
             .ok_or(anyhow!("Invalid filename"))?
             .to_string_lossy()
             .to_string();
 
-        let mut file = File::open(path)?;
+        let mut file = File::open(&abs_path)
+            .map_err(|e| anyhow!("Failed to open file at {:?}: {}", abs_path, e))?;
         let mut buffer = Vec::new();
         file.read_to_end(&mut buffer)?;
 
