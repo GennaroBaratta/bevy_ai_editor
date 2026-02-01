@@ -534,7 +534,14 @@ impl eframe::App for AxiomApp {
                         let mut references = Vec::new();
 
                         for path in &self.file_tree_state.selected_files {
-                            if let Ok(content) = std::fs::read_to_string(path) {
+                            let extension = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+                            let is_binary = matches!(extension.as_str(), "glb" | "gltf" | "png" | "jpg" | "jpeg" | "wav" | "ogg" | "mp3");
+
+                            if is_binary {
+                                // For binary assets, provide the path but NOT the content
+                                let entry = format!("`{}`: [BINARY ASSET AVAILABLE at this path]\n", path.display());
+                                references.push(entry);
+                            } else if let Ok(content) = std::fs::read_to_string(path) {
                                 let is_modify = *self.file_tree_state.selection_modes.get(path).unwrap_or(&false);
                                 let entry = format!("`{}`:\n```rust\n{}\n```\n", path.display(), content);
                                 
