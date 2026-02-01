@@ -121,20 +121,39 @@ fn handle_remote_assets(
 
         // 3. Write file to disk
         let file_path = cache_dir.join(&asset.filename);
-        let mut file = match File::create(&file_path) {
-            Ok(f) => f,
-            Err(e) => {
-                error!("Failed to create file {:?}: {}", file_path, e);
-                continue;
-            }
-        };
 
-        if let Err(e) = file.write_all(&decoded) {
-            error!("Failed to write file {:?}: {}", file_path, e);
-            continue;
+        // Prevent redundant writes / race conditions for same content
+        let mut should_write = true;
+        if file_path.exists() {
+            if let Ok(existing_bytes) = std::fs::read(&file_path) {
+                if existing_bytes == decoded {
+                    info!(
+                        "File {:?} already exists and matches content. Skipping write.",
+                        file_path
+                    );
+                    should_write = false;
+                }
+            }
         }
 
-        info!("Saved remote asset to {:?}", file_path);
+        if should_write {
+            let mut file = match File::create(&file_path) {
+                Ok(f) => f,
+                Err(e) => {
+                    error!("Failed to create file {:?}: {}", file_path, e);
+                    continue;
+                }
+            };
+
+            if let Err(e) = file.write_all(&decoded) {
+                error!("Failed to write file {:?}: {}", file_path, e);
+                continue;
+            }
+            info!("Saved remote asset to {:?}", file_path);
+        } else {
+            // Touch the file to ensure asset server notices if it's hot reloading?
+            // Actually, if content is same, we don't want to trigger reload.
+        }
 
         // 4. Load the asset using AssetServer
         // Note: AssetServer paths are relative to "assets" folder
