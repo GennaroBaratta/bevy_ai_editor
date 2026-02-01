@@ -668,6 +668,11 @@ impl eframe::App for AxiomApp {
                     self.pending_image = None;
                     self.preview_texture = None;
                 }
+                input::InputAction::ClearScene => {
+                    // Send a command to the AI to clear the scene
+                    self.input_text = "Clear the entire scene.".to_string();
+                    self.send_message(true); // Force send
+                }
                 input::InputAction::None => {}
             }
         });
