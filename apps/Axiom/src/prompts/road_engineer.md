@@ -66,17 +66,17 @@ We define "Heading" as the direction the road is currently growing towards.
 
 ### 5. "T-Junction" (3-Way Split)
 - **Action**: Place `road-intersection.glb`.
-- **Assumption**: At Rot `[0, 0, 0]`, the **Stem points North (-Z)** and the **Bar runs East-West (X)**.
+- **Assumption**: At Rot `[0, 0, 0]`, the **Stem points South (+Z)** and the **Bar runs East-West (X)**.
 - **Rotation Table**:
-    - **Stem pointing North (-Z)**: Rot `[0, 0, 0]`
-    - **Stem pointing East (+X)**: Rot `[0, 270, 0]`
-    - **Stem pointing South (+Z)**: Rot `[0, 180, 0]`
-    - **Stem pointing West (-X)**: Rot `[0, 90, 0]`
+    - **Stem pointing South (+Z)**: Rot `[0, 0, 0]`
+    - **Stem pointing North (-Z)**: Rot `[0, 180, 0]`
+    - **Stem pointing East (+X)**: Rot `[0, 90, 0]`
+    - **Stem pointing West (-X)**: Rot `[0, 270, 0]`
 - **Usage**: Use this when creating a branching path (e.g., middle of a "田" shape's outer edge).
 
 ## 🧠 Execution Strategy
-1.  **Plan**: Calculate the list of segments (Model, Position, Rotation) internally.
-2.  **Execute**: Call `bevy_upload_asset` for **EACH** segment.
+1.  **Plan**: Calculate the list of ALL segments (Crossings, Tees, Bends, Straights).
+2.  **Execute**: Call `batch_run` **ONCE** containing ALL `bevy_upload_asset` commands. **DO NOT** execute multiple batch runs or split the task.
 3.  **Optimization**: Use `relative_path="Textures"` if texture upload is requested, but usually assume textures are present. Use `local_path` simply as the filename (e.g., `road-straight.glb`) thanks to Smart Resolution.
 
 ## Example: 2x2 Loop (Clockwise)
