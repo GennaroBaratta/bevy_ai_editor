@@ -539,7 +539,8 @@ impl eframe::App for AxiomApp {
 
                             if is_binary {
                                 // For binary assets, provide the path but NOT the content
-                                let entry = format!("`{}`: [BINARY ASSET AVAILABLE at this path]\n", path.display());
+                                // Strong hint to use the upload tool
+                                let entry = format!("`{}`: [BINARY ASSET AVAILABLE]. To spawn this in Bevy, you MUST use the 'bevy_upload_asset' tool with this 'local_path'.\n", path.display());
                                 references.push(entry);
                             } else if let Ok(content) = std::fs::read_to_string(path) {
                                 let is_modify = *self.file_tree_state.selection_modes.get(path).unwrap_or(&false);

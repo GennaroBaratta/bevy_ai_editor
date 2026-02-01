@@ -16,12 +16,24 @@ pub struct FileTreeState {
 
 impl Default for FileTreeState {
     fn default() -> Self {
-        // Try to start at the current working directory (project root)
+        // Try to start at apps/axiom/assets/models, fallback to CWD
         let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        let default_path = cwd.join("assets").join("models");
+
+        // Ensure it exists just in case
+        if !default_path.exists() {
+            let _ = std::fs::create_dir_all(&default_path);
+        }
+
+        let root = if default_path.exists() {
+            default_path
+        } else {
+            cwd.clone()
+        };
 
         Self {
-            root_path: cwd.clone(),
-            input_path: cwd.to_string_lossy().to_string(),
+            root_path: root.clone(),
+            input_path: root.to_string_lossy().to_string(), // Keep input as CWD for context, or maybe root? Let's use root.
             selected_files: HashSet::new(),
             expanded_paths: HashSet::new(),
             selection_modes: std::collections::HashMap::new(),
