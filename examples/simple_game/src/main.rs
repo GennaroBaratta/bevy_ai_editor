@@ -24,39 +24,41 @@ fn camera_controller(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut query: Query<&mut Transform, With<Camera3d>>,
 ) {
-    let mut transform = query.single_mut();
+    // let mut transform = query.single_mut(); // Removed unsafe unwrap
     let speed = 10.0;
     let mut velocity = Vec3::ZERO;
 
-    // Forward/Backward (Z) - Relative to camera rotation? No, let's do simple World space first for stability,
-    // or local space if we want to "fly".
-    // Let's do local space (Fly).
-    let forward = transform.forward();
-    let right = transform.right();
-    let up = Vec3::Y;
+    if let Ok(mut transform) = query.get_single_mut() {
+        // Forward/Backward (Z) - Relative to camera rotation? No, let's do simple World space first for stability,
+        // or local space if we want to "fly".
+        // Let's do local space (Fly).
+        let forward = transform.forward();
+        let right = transform.right();
+        let up = Vec3::Y;
 
-    if keyboard_input.pressed(KeyCode::KeyW) {
-        velocity += forward.as_vec3();
-    }
-    if keyboard_input.pressed(KeyCode::KeyS) {
-        velocity -= forward.as_vec3();
-    }
-    if keyboard_input.pressed(KeyCode::KeyA) {
-        velocity -= right.as_vec3();
-    }
-    if keyboard_input.pressed(KeyCode::KeyD) {
-        velocity += right.as_vec3();
-    }
-    if keyboard_input.pressed(KeyCode::KeyE) {
-        velocity += up;
-    }
-    if keyboard_input.pressed(KeyCode::KeyQ) {
-        velocity -= up;
-    }
+        if keyboard_input.pressed(KeyCode::KeyW) {
+            velocity += forward.as_vec3();
+        }
+        if keyboard_input.pressed(KeyCode::KeyS) {
+            velocity -= forward.as_vec3();
+        }
+        if keyboard_input.pressed(KeyCode::KeyA) {
+            velocity -= right.as_vec3();
+        }
+        if keyboard_input.pressed(KeyCode::KeyD) {
+            velocity += right.as_vec3();
+        }
+        if keyboard_input.pressed(KeyCode::KeyE) {
+            velocity += up;
+        }
+        if keyboard_input.pressed(KeyCode::KeyQ) {
+            velocity -= up;
+        }
 
-    if velocity != Vec3::ZERO {
-        let translation = velocity.normalize() * speed * time.delta_secs();
-        transform.translation += translation;
+        if velocity != Vec3::ZERO {
+            let translation = velocity.normalize() * speed * time.delta_secs();
+            transform.translation += translation;
+        }
     }
 }
 
