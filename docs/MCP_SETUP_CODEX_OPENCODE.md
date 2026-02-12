@@ -8,18 +8,26 @@ This guide explains how to integrate the **Bevy MCP Server** with AI coding assi
 - A **Bevy game** running with `bevy_ai_remote` plugin (listening on `http://127.0.0.1:15721`)
 - **OpenCode** or **Codex** (or another MCP-compatible AI assistant)
 
-## Starting the MCP Server
+## Building the MCP Server
 
-The Bevy MCP Server runs as a stdio-based MCP server. From the repository root:
+Before configuring your AI assistant, build the MCP server binary:
 
 ```bash
-cargo run -p bevy_mcp_server
+cargo build -p bevy_mcp_server
+```
+
+For production use, build with optimizations:
+
+```bash
+cargo build --release -p bevy_mcp_server
 ```
 
 The server will:
 - Connect to the Bevy BRP endpoint (default: `http://127.0.0.1:15721`)
 - Expose 6 MCP tools for scene manipulation
 - Communicate via JSON-RPC over stdin/stdout
+
+**Note**: We run the pre-built binary directly (not via `cargo run`) because cargo's compilation output on stderr can interfere with the MCP stdio protocol.
 
 ## OpenCode Configuration
 
@@ -31,9 +39,10 @@ Add this to your OpenCode configuration file (typically `.opencode/config.json` 
   "mcp": {
     "bevy": {
       "type": "local",
-      "command": ["cargo", "run", "-p", "bevy_mcp_server"],
+      "command": ["./target/debug/bevy_mcp_server"],
       "environment": {
-        "BRP_ENDPOINT": "http://127.0.0.1:15721"
+        "BRP_ENDPOINT": "http://127.0.0.1:15721",
+        "RUST_LOG": "off"
       }
     }
   },
@@ -54,27 +63,28 @@ Add this to your Codex MCP configuration:
 
 ```toml
 [mcp.servers.bevy]
-command = ["cargo", "run", "-p", "bevy_mcp_server"]
+command = ["./target/debug/bevy_mcp_server"]
 type = "local"
 
 [mcp.servers.bevy.environment]
 BRP_ENDPOINT = "http://127.0.0.1:15721"
+RUST_LOG = "off"
 
 [tools]
 bevy_bevy_rpc_raw = false  # Disabled by default for safety
 ```
 
 **Notes**:
-- Adjust `command` if using a pre-built binary instead of `cargo run`
+- After code changes, rebuild with `cargo build -p bevy_mcp_server`
 - Set `BRP_ENDPOINT` if your Bevy game uses a different port
 - `bevy_bevy_rpc_raw` is disabled to prevent unsafe raw BRP access (see Advanced Usage below)
 
 ## Troubleshooting
 
-### Startup Timeout
-If the MCP server fails to start within the expected time:
-- **Cause**: Cargo compile time on first run
-- **Solution**: Pre-build the binary with `cargo build -p bevy_mcp_server` before configuring MCP
+### "Failed to get tools" / Startup Failure
+If the MCP client reports "Failed to get tools" or fails to connect:
+- **Cause**: `cargo run` emits compilation warnings and progress to stderr, which interferes with the MCP stdio protocol handshake
+- **Solution**: Always build first (`cargo build -p bevy_mcp_server`), then point your config at the binary directly (`./target/debug/bevy_mcp_server`). Set `RUST_LOG=off` to silence runtime tracing
 
 ### BRP Connection Errors
 If tools fail with "Connection refused" or "Ping failed":

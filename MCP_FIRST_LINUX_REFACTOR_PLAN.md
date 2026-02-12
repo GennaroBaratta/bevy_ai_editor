@@ -311,9 +311,10 @@ async fn main() {
   "mcp": {
     "bevy": {
       "type": "local",
-      "command": ["cargo", "run", "-p", "bevy_mcp_server"],
+      "command": ["./target/debug/bevy_mcp_server"],
       "environment": {
-        "BRP_ENDPOINT": "http://127.0.0.1:15721"
+        "BRP_ENDPOINT": "http://127.0.0.1:15721",
+        "RUST_LOG": "off"
       }
     }
   },
@@ -334,8 +335,7 @@ Notes:
 
 ```toml
 [mcp_servers.bevy]
-command = "cargo"
-args = ["run", "-p", "bevy_mcp_server"]
+command = "./target/debug/bevy_mcp_server"
 cwd = "/absolute/path/to/repo"
 startup_timeout_sec = 20
 tool_timeout_sec = 60

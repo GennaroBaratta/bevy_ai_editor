@@ -5,6 +5,7 @@ use rmcp::{
     handler::server::{tool::ToolRouter, ServerHandler, wrapper::Parameters},
     transport,
     ServiceExt,
+
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -54,7 +55,7 @@ fn default_target() -> String { "all".to_string() }
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 struct RpcRawParams {
     method: String,
-    params: Option<serde_json::Value>,
+    params: Option<serde_json::Map<String, serde_json::Value>>,
 }
 
 #[derive(Clone)]
@@ -151,7 +152,7 @@ impl BevyMcpServer {
 
     #[tool(description = "Raw BRP RPC call (advanced users only - no parameter wrapping)")]
     async fn bevy_rpc_raw(&self, params: Parameters<RpcRawParams>) -> Result<CallToolResult, McpError> {
-        let result = ops::raw::raw(&self.client, &params.0.method, params.0.params.clone()).await
+        let result = ops::raw::raw(&self.client, &params.0.method, params.0.params.clone().map(serde_json::Value::Object)).await
             .map_err(|e| McpError::internal_error(format!("RPC failed: {}", e), None))?;
         
         Ok(CallToolResult::structured(result))
@@ -159,7 +160,16 @@ impl BevyMcpServer {
 }
 
 #[tool_handler]
-impl ServerHandler for BevyMcpServer {}
+impl ServerHandler for BevyMcpServer {
+    fn get_info(&self) -> ServerInfo {
+        ServerInfo {
+            protocol_version: ProtocolVersion::V_2024_11_05,
+            capabilities: ServerCapabilities::builder().enable_tools().build(),
+            server_info: Implementation::from_build_env(),
+            instructions: Some("Bevy MCP Server – control a running Bevy game via BRP".into()),
+        }
+    }
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -173,4 +183,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     server.serve(transport).await?.waiting().await?;
     
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rpc_raw_params_schema_has_no_bare_true() {
+        let schema = schemars::schema_for!(RpcRawParams);
+        let json = serde_json::to_string(&schema).unwrap();
+        assert!(
+            !json.contains("\"params\":true") && !json.contains("\"params\": true"),
+            "Schema contains bare 'true' for params field, which OpenCode rejects:\n{}",
+            serde_json::to_string_pretty(&schema).unwrap()
+        );
+    }
 }

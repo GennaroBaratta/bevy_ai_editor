@@ -1,0 +1,16 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "bevy": {
+      "type": "local",
+      "command": ["./target/debug/bevy_mcp_server"],
+      "environment": {
+        "BRP_ENDPOINT": "http://127.0.0.1:15721",
+        "RUST_LOG": "off"
+      }
+    }
+  },
+  "tools": {
+    "bevy_bevy_rpc_raw": false
+  }
+}
