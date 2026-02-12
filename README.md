@@ -43,9 +43,21 @@ We provide a script to launch both the Editor and the Game:
 run_all.cmd
 ```
 
-This will:
+**Linux/macOS**:
+```bash
+chmod +x run_all.sh  # First time only
+./run_all.sh
+```
+
+Both will:
 1.  Start `simple_game` (Listens on port 15721).
 2.  Start `Axiom` Editor.
+
+To run components separately:
+```bash
+./run_game.sh      # Run game only
+./run_editor.sh    # Run editor only (ensure game is running first)
+```
 
 ### 4. How to Use
 1.  **Camera**: In the game window, use **WASD** to move and **Q/E** to fly up/down.
