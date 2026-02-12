@@ -24,9 +24,10 @@ pub async fn spawn(
     
     let result = client.send_rpc("world.spawn_entity", Some(params)).await?;
     
-    let entity_id = result
-        .as_str()
-        .ok_or_else(|| crate::BrpError::InvalidResponse("Expected entity ID as string".into()))?
+    let entity_id = result.get("entity")
+        .ok_or_else(|| crate::BrpError::InvalidResponse(
+            "Missing 'entity' in spawn response".into()
+        ))?
         .to_string();
     
     Ok(SpawnResponse { entity_id })
