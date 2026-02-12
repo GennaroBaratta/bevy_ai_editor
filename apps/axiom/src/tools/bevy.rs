@@ -197,7 +197,7 @@ impl Tool for BevyRpcTool {
     }
 
     fn description(&self) -> String {
-        "Send a raw JSON-RPC request to the running Bevy engine (bevy_remote). Methods: bevy/spawn, bevy/get, bevy/list, etc.".to_string()
+        "Send a raw JSON-RPC request to the running Bevy engine (bevy_remote). Methods: world.spawn_entity, world.query, rpc.discover, etc.".to_string()
     }
 
     fn schema(&self) -> Value {
@@ -211,7 +211,7 @@ impl Tool for BevyRpcTool {
                     "properties": {
                         "method": {
                             "type": "string",
-                            "description": "The RPC method (e.g., 'bevy/spawn', 'bevy/query', 'bevy/list')."
+                            "description": "The RPC method (e.g., 'world.spawn_entity', 'world.query', 'rpc.discover')."
                         },
                         "params": {
                             "type": "object",

@@ -14,7 +14,7 @@ This document describes the 6 MCP tools exposed by the Bevy MCP Server.
 ```json
 {
   "alive": true,
-  "methods": ["bevy/list", "bevy/get", "bevy/query", "bevy/spawn", "bevy/despawn", ...]
+  "methods": { "openrpc": "1.0.0", "info": { "title": "Bevy BRP" }, "methods": ["world.spawn_entity", "world.query", "..."] }
 }
 ```
 
@@ -25,7 +25,7 @@ Use bevy_ping to check if the Bevy game is running
 
 **Notes**:
 - Use this first to verify the MCP server can reach the Bevy game
-- Returns the list of available BRP methods from the game
+- Returns the OpenRPC discovery document describing available BRP methods
 
 ---
 
@@ -45,7 +45,7 @@ Use bevy_ping to check if the Bevy game is running
 {
   "entities": [
     {
-      "entity": "0v1#4294967298",
+      "entity": 4294967298,
       "components": {
         "bevy_ai_remote::AxiomPrimitive": { "primitive_type": "cube" },
         "bevy_transform::components::transform::Transform": {
@@ -92,7 +92,7 @@ Query all primitive shapes: use bevy_query with components ["bevy_ai_remote::Axi
 **Output**:
 ```json
 {
-  "entity_id": "0v1#4294967299"
+  "entity_id": "4294967299"
 }
 ```
 
@@ -127,7 +127,7 @@ Spawn a cube at position (2, 1, 0): use bevy_spawn_primitive with primitive_type
 **Output**:
 ```json
 {
-  "entity_id": "0v1#4294967300"
+  "entity_id": "4294967300"
 }
 ```
 
@@ -174,7 +174,7 @@ Clear all primitives from the scene: use bevy_clear_scene with target "primitive
 ```
 
 **Notes**:
-- Uses `bevy/list` to enumerate entities, then `bevy/despawn` to remove matching ones
+- Uses `world.query` with `has` filter to find entities, then `world.despawn_entity` to remove matching ones
 - Does NOT remove game-native entities (only editor-spawned content)
 - Filtering is based on component type matching
 

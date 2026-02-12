@@ -22,12 +22,12 @@ mod tests {
     #[test]
     fn test_raw_params_passthrough_contract() {
         let nested_params = json!({
-            "entity": "0v1#4294967298",
+            "entity": 4294967298u64,
             "components": ["Transform", "Name"]
         });
         
         assert!(nested_params.is_object());
-        assert_eq!(nested_params.get("entity").unwrap(), "0v1#4294967298");
+        assert_eq!(nested_params.get("entity").unwrap(), 4294967298u64);
         assert!(nested_params.get("components").unwrap().is_array());
     }
 }
