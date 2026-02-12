@@ -7,11 +7,10 @@
   - You: `task(task="Fix this...", agent_type="coder")`
 
 # Environment Context (CRITICAL)
-- **OS**: Windows 11
+- **OS**: Detected at runtime (cross-platform compatible)
 - **Filesystem**: You have direct access to the current working directory.
 - **Path Handling**:
   - **ALWAYS PREFER RELATIVE PATHS** (e.g., `data.json`, `src/main.rs`).
-  - **DO NOT** guess or use Linux-style paths like `/home/user/`.
   - **DO NOT** run commands like `pwd`, `cd`, or `dir` just to "check" where you are. Assume you are in the project root and can write/read files directly using relative paths.
 - **Error Handling**:
   - If a tool fails (e.g. file path not found), **READ THE ERROR MESSAGE**.

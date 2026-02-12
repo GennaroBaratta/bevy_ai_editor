@@ -73,7 +73,15 @@ impl AxiomApp {
         egui_extras::install_image_loaders(&cc.egui_ctx);
 
         let mut fonts = egui::FontDefinitions::default();
+        
+        #[cfg(target_os = "windows")]
         let font_path = "C:/Windows/Fonts/msyh.ttc";
+        
+        #[cfg(target_os = "linux")]
+        let font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf";
+        
+        #[cfg(target_os = "macos")]
+        let font_path = "/System/Library/Fonts/PingFang.ttc";
 
         if let Ok(data) = std::fs::read(font_path) {
             fonts.font_data.insert(
@@ -689,13 +697,21 @@ impl eframe::App for AxiomApp {
                     }
                 }
                 input::InputAction::RequestScreenshot => {
-                    if let Some(clipboard) = &mut self.clipboard {
-                        let _ = clipboard.set_text(""); 
+                    #[cfg(target_os = "windows")]
+                    {
+                        if let Some(clipboard) = &mut self.clipboard {
+                            let _ = clipboard.set_text(""); 
+                        }
+                        let _ = Command::new("cmd")
+                            .args(["/C", "start", "ms-screenclip:"])
+                            .spawn();
+                        self.waiting_for_screenshot = true;
                     }
-                    let _ = Command::new("cmd")
-                        .args(["/C", "start", "ms-screenclip:"])
-                        .spawn();
-                    self.waiting_for_screenshot = true;
+                    
+                    #[cfg(not(target_os = "windows"))]
+                    {
+                        eprintln!("Screenshot functionality not supported on this platform");
+                    }
                 }
                 input::InputAction::ClearPendingImage => {
                     self.pending_image = None;
@@ -733,10 +749,7 @@ fn main() -> eframe::Result<()> {
     
     if !base_url.contains("127.0.0.1") && !base_url.contains("localhost") {
         if std::env::var("HTTPS_PROXY").is_err() && std::env::var("https_proxy").is_err() {
-            println!("Setting default HTTPS_PROXY to http://127.0.0.1:17890");
-            unsafe {
-                std::env::set_var("HTTPS_PROXY", "http://127.0.0.1:17890");
-            }
+            println!("Warning: Connecting to non-localhost endpoint without proxy. Set HTTPS_PROXY in .env if needed.");
         }
     } else {
         println!("Targeting localhost ({}). Skipping default proxy setup.", base_url);
