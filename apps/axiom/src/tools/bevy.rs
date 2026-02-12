@@ -1,13 +1,19 @@
 use crate::tools::Tool;
 use anyhow::{anyhow, Result};
-use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
-use glam::{Quat, Vec3};
+use bevy_bridge_core::{BrpClient, BrpConfig, ops};
+use glam::Quat;
 use serde_json::{json, Value};
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
+use tokio::runtime::Runtime;
 
 const BEVY_RPC_URL: &str = "http://127.0.0.1:15721";
+
+fn get_bridge_client() -> Result<BrpClient> {
+    let config = BrpConfig::from_env();
+    Ok(BrpClient::new(config))
+}
 
 /// Tool to upload a local file to Bevy via BRP and spawn it
 pub struct BevyUploadAssetTool;
@@ -60,6 +66,9 @@ impl Tool for BevyUploadAssetTool {
     }
 
     fn execute(&self, args: Value) -> Result<String> {
+        let client = get_bridge_client()?;
+        let rt = Runtime::new()?;
+        
         let local_path = args
             .get("local_path")
             .and_then(|v| v.as_str())
@@ -67,17 +76,16 @@ impl Tool for BevyUploadAssetTool {
 
         let relative_path = args
             .get("relative_path")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string());
+            .and_then(|v| v.as_str());
 
         let t = args
             .get("translation")
             .and_then(|v| v.as_array())
             .ok_or(anyhow!("Missing translation"))?;
 
-        let tx = t.get(0).and_then(|v| v.as_f64()).unwrap_or(0.0);
-        let ty = t.get(1).and_then(|v| v.as_f64()).unwrap_or(0.0);
-        let tz = t.get(2).and_then(|v| v.as_f64()).unwrap_or(0.0);
+        let tx = t.get(0).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
+        let ty = t.get(1).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
+        let tz = t.get(2).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
 
         // Handle Rotation
         let rotation_quat = if let Some(rot_arr) = args.get("rotation").and_then(|v| v.as_array()) {
@@ -153,50 +161,30 @@ impl Tool for BevyUploadAssetTool {
         let mut buffer = Vec::new();
         file.read_to_end(&mut buffer)?;
 
-        // 2. Encode to Base64
-        let b64_data = BASE64.encode(&buffer);
-
         println!(
             "[BevyTool] Uploading {} ({} bytes) ...",
             filename,
             buffer.len()
         );
 
-        // 3. Send Payload
-        let payload = json!({
-            "jsonrpc": "2.0",
-            "method": "world.spawn_entity",
-            "id": 1,
-            "params": {
-                "components": {
-                    "bevy_ai_remote::AxiomRemoteAsset": {
-                        "filename": filename,
-                        "data_base64": b64_data,
-                        "subdir": relative_path
-                    },
-                    "bevy_transform::components::transform::Transform": {
-                        "translation": [tx, ty, tz],
-                        "rotation": [rotation_quat.x, rotation_quat.y, rotation_quat.z, rotation_quat.w],
-                        "scale": [1.0, 1.0, 1.0]
-                    }
-                }
-            }
-        });
+        // Call bridge_core operation
+        let response = rt.block_on(async {
+            ops::upload::upload(
+                &client,
+                &filename,
+                &buffer,
+                relative_path,
+                [tx, ty, tz],
+                [rotation_quat.x, rotation_quat.y, rotation_quat.z, rotation_quat.w],
+            )
+            .await
+        })
+        .map_err(|e| anyhow!("Bridge error: {}", e))?;
 
-        // Use a longer timeout for large files
-        let agent = ureq::AgentBuilder::new()
-            .timeout_read(std::time::Duration::from_secs(10))
-            .timeout_write(std::time::Duration::from_secs(10))
-            .build();
-
-        match agent.post(BEVY_RPC_URL).send_json(payload) {
-            Ok(res) => Ok(format!(
-                "Uploaded and Spawned {}. Response: {}",
-                filename,
-                res.status()
-            )),
-            Err(e) => Err(anyhow!("Failed to upload asset: {}", e)),
-        }
+        Ok(format!(
+            "Uploaded and Spawned {}. Entity ID: {}",
+            filename, response.entity_id
+        ))
     }
 }
 
@@ -237,57 +225,27 @@ impl Tool for BevyRpcTool {
     }
 
     fn execute(&self, args: Value) -> Result<String> {
+        let client = get_bridge_client()?;
+        let rt = Runtime::new()?;
+        
         let method = args
             .get("method")
             .and_then(|v| v.as_str())
             .ok_or_else(|| anyhow!("Missing 'method' argument"))?;
 
-        let params = args.get("params").unwrap_or(&json!({})).clone();
+        let params = args.get("params").cloned();
 
-        let payload = if method == "world.query" {
-            // Bevy 0.18 BRP world.query expects: { "data": { "components": [...] }, "filter": ... }
-            // If the user provided { "components": [...] } directly in params, we need to wrap it.
-            if params.get("data").is_none() && params.get("components").is_some() {
-                json!({
-                    "jsonrpc": "2.0",
-                    "method": method,
-                    "id": 1,
-                    "params": {
-                        "data": params
-                    }
-                })
-            } else {
-                json!({
-                    "jsonrpc": "2.0",
-                    "method": method,
-                    "id": 1,
-                    "params": params
-                })
-            }
+        let result = rt.block_on(async {
+            ops::raw::raw(&client, method, params).await
+        })
+        .map_err(|e| anyhow!("Bridge error: {}", e))?;
+
+        if let Some(error) = result.get("error") {
+            Err(anyhow!("Bevy RPC Error: {}", error))
+        } else if let Some(result_value) = result.get("result") {
+            Ok(serde_json::to_string_pretty(result_value)?)
         } else {
-            json!({
-                "jsonrpc": "2.0",
-                "method": method,
-                "id": 1,
-                "params": params
-            })
-        };
-
-        match ureq::post(BEVY_RPC_URL).send_json(payload) {
-            Ok(res) => {
-                let body: Value = res.into_json()?;
-                if let Some(error) = body.get("error") {
-                    Err(anyhow!("Bevy RPC Error: {}", error))
-                } else if let Some(result) = body.get("result") {
-                    Ok(serde_json::to_string_pretty(result)?)
-                } else {
-                    Ok("Success (No result)".to_string())
-                }
-            }
-            Err(e) => Err(anyhow!(
-                "Failed to connect to Bevy (is bevy_remote feature enabled and app running?): {}",
-                e
-            )),
+            Ok(serde_json::to_string_pretty(&result)?)
         }
     }
 }
@@ -433,53 +391,15 @@ impl Tool for BevyClearSceneTool {
     }
 
     fn execute(&self, _args: Value) -> Result<String> {
-        // 1. List all entities
-        let list_payload = json!({
-            "jsonrpc": "2.0",
-            "method": "bevy/list",
-            "id": 1,
-            "params": {}
-        });
+        let client = get_bridge_client()?;
+        let rt = Runtime::new()?;
+        
+        let response = rt.block_on(async {
+            ops::clear::clear(&client, bevy_bridge_core::types::ClearTarget::All).await
+        })
+        .map_err(|e| anyhow!("Bridge error: {}", e))?;
 
-        let resp = ureq::post(BEVY_RPC_URL).send_json(list_payload)?;
-        let body: Value = resp.into_json()?;
-
-        let mut count = 0;
-        if let Some(result) = body.get("result").and_then(|r| r.as_array()) {
-            for entity_info in result {
-                if let Some(entity_id) = entity_info.get("entity").and_then(|e| e.as_u64()) {
-                    let components = entity_info.get("components").and_then(|c| c.as_array());
-
-                    // Filter: Only despawn entities that have "SceneRoot" component
-                    // This targets our GLB models while sparing Camera, Lights, and System entities.
-                    let should_despawn = components
-                        .map(|c| {
-                            c.iter().any(|v| {
-                                v.as_str().map(|s| s.contains("SceneRoot")).unwrap_or(false)
-                            })
-                        })
-                        .unwrap_or(false);
-
-                    if should_despawn {
-                        println!("[BevyTool] Despawning entity: {}", entity_id);
-
-                        let despawn_payload = json!({
-                            "jsonrpc": "2.0",
-                            "method": "bevy/despawn",
-                            "id": 1,
-                            "params": {
-                                "entity": entity_id
-                            }
-                        });
-
-                        let _ = ureq::post(BEVY_RPC_URL).send_json(despawn_payload);
-                        count += 1;
-                    }
-                }
-            }
-        }
-
-        Ok(format!("Cleared {} entities.", count))
+        Ok(format!("Cleared {} entities.", response.entities_removed))
     }
 }
 
@@ -524,67 +444,30 @@ impl Tool for BevySpawnPrimitiveTool {
     }
 
     fn execute(&self, args: Value) -> Result<String> {
+        let client = get_bridge_client()?;
+        let rt = Runtime::new()?;
+        
         let t = args
             .get("translation")
             .and_then(|v| v.as_array())
             .ok_or(anyhow!("Missing translation"))?;
 
-        let tx = t.get(0).and_then(|v| v.as_f64()).unwrap_or(0.0);
-        let ty = t.get(1).and_then(|v| v.as_f64()).unwrap_or(0.0);
-        let tz = t.get(2).and_then(|v| v.as_f64()).unwrap_or(0.0);
+        let tx = t.get(0).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
+        let ty = t.get(1).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
+        let tz = t.get(2).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
 
-        // Map "cube" to the actual asset path we generated
-        let _asset_path = "cube.glb#Scene0";
+        let response = rt.block_on(async {
+            ops::spawn::spawn(
+                &client,
+                "cube",
+                [tx, ty, tz],
+                [0.0, 0.0, 0.0, 1.0],
+                [1.0, 1.0, 1.0],
+            )
+            .await
+        })
+        .map_err(|e| anyhow!("Bridge error: {}", e))?;
 
-        // Use the custom AxiomPrimitive component we added to bevy_ai_remote
-        // This triggers the spawn_primitives system on the game side to attach Mesh and Material.
-        let payload = json!({
-            "jsonrpc": "2.0",
-            "method": "world.spawn_entity",
-            "id": 1,
-            "params": {
-                "components": {
-                    "bevy_ai_remote::AxiomPrimitive": {
-                        "primitive_type": "cube"
-                    },
-                    "bevy_transform::components::transform::Transform": {
-                        "translation": [tx, ty, tz],
-                        "rotation": [0.0, 0.0, 0.0, 1.0],
-                        "scale": [1.0, 1.0, 1.0]
-                    }
-                }
-            }
-        });
-
-        // Create an agent with a timeout to prevent hanging
-        let agent = ureq::AgentBuilder::new()
-            .timeout_read(std::time::Duration::from_secs(2))
-            .timeout_write(std::time::Duration::from_secs(2))
-            .build();
-
-        println!(
-            "[BevyTool] Sending Payload to {}: {}",
-            BEVY_RPC_URL, payload
-        );
-
-        match agent.post(BEVY_RPC_URL).send_json(payload) {
-            Ok(res) => {
-                let status = res.status();
-                let body_str = res.into_string()?; // Get raw string first for debugging
-                println!("[BevyTool] Response ({}): {}", status, body_str);
-
-                // Parse back to JSON to be safe
-                let body: Value = serde_json::from_str(&body_str)
-                    .unwrap_or(json!({"error": "Invalid JSON response"}));
-                Ok(format!("Spawned Cube (Scene). Bevy Response: {}", body))
-            }
-            Err(e) => {
-                println!("[BevyTool] ERROR: {}", e);
-                Err(anyhow!(
-                    "Failed to spawn primitive via bevy_remote: {}. Is Bevy running on port 15721?",
-                    e
-                ))
-            }
-        }
+        Ok(format!("Spawned Cube. Entity ID: {}", response.entity_id))
     }
 }
