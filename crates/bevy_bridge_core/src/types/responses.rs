@@ -2,8 +2,18 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UploadResponse {
+    pub entity_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpawnResponse {
-    pub entity_id: u64,
+    pub entity_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ClearResponse {
+    pub entities_removed: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -13,10 +23,6 @@ pub struct QueryResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PingResponse {
-    pub status: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RawRpcResponse {
-    pub result: Value,
+    pub alive: bool,
+    pub methods: Value,
 }

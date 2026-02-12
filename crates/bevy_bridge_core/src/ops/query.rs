@@ -1,6 +1,20 @@
 use crate::{BrpClient, Result};
-use serde_json::Value;
+use crate::types::QueryResponse;
+use serde_json::json;
 
-pub async fn query(_client: &BrpClient, _query: &str) -> Result<Vec<Value>> {
-    todo!("Implementation in Task 3")
+pub async fn query(client: &BrpClient, components: Vec<String>) -> Result<QueryResponse> {
+    let params = json!({
+        "data": {
+            "components": components
+        }
+    });
+    
+    let result = client.send_rpc("world.query", Some(params)).await?;
+    
+    let entities = result
+        .as_array()
+        .ok_or_else(|| crate::BrpError::InvalidResponse("Expected array from world.query".into()))?
+        .clone();
+    
+    Ok(QueryResponse { entities })
 }
