@@ -28,3 +28,5 @@ apps/axiom/output.json
 apps/axiom/entity_list.json
 **/*.log
 _remote_cache/
+
+.sisyphus/
