@@ -97,16 +97,17 @@ impl BevyMcpServer {
         })))
     }
 
-    #[tool(description = "Spawn a primitive object in the Bevy scene")]
-    async fn bevy_spawn_primitive(&self, params: Parameters<SpawnPrimitiveParams>) -> Result<CallToolResult, McpError> {
-        let response = ops::spawn::spawn(
-            &self.client,
-            &params.0.primitive_type,
-            params.0.position,
-            params.0.rotation,
-            params.0.scale,
-        ).await
-            .map_err(|e| McpError::internal_error(format!("Spawn failed: {}", e), None))?;
+     #[tool(description = "Spawn a primitive object in the Bevy scene")]
+     async fn bevy_spawn_primitive(&self, params: Parameters<SpawnPrimitiveParams>) -> Result<CallToolResult, McpError> {
+         let primitive_type = params.0.primitive_type.to_lowercase();
+         let response = ops::spawn::spawn(
+             &self.client,
+             &primitive_type,
+             params.0.position,
+             params.0.rotation,
+             params.0.scale,
+         ).await
+             .map_err(|e| McpError::internal_error(format!("Spawn failed: {}", e), None))?;
         
         Ok(CallToolResult::structured(serde_json::json!({
             "entity_id": response.entity_id

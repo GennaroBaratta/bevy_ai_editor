@@ -412,7 +412,7 @@ impl Tool for BevySpawnPrimitiveTool {
     }
 
     fn description(&self) -> String {
-        "Spawn a primitive 3D object (currently just a cube) at a specific location via Bevy Remote using a pre-existing glTF asset 'cube.glb'.".to_string()
+        "Spawn a primitive 3D object (cube, sphere, capsule, cylinder, cone, torus, plane, tetrahedron, cuboid) at a specific location via Bevy Remote.".to_string()
     }
 
     fn schema(&self) -> Value {
@@ -426,7 +426,7 @@ impl Tool for BevySpawnPrimitiveTool {
                     "properties": {
                         "type": {
                             "type": "string",
-                            "enum": ["cube"],
+                            "enum": ["cube", "sphere", "capsule", "cylinder", "cone", "torus", "plane", "tetrahedron", "cuboid"],
                             "description": "Type of primitive to spawn."
                         },
                         "translation": {
@@ -456,10 +456,15 @@ impl Tool for BevySpawnPrimitiveTool {
         let ty = t.get(1).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
         let tz = t.get(2).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
 
+        let primitive_type = args
+            .get("type")
+            .and_then(|v| v.as_str())
+            .unwrap_or("cube");
+
         let response = rt.block_on(async {
             ops::spawn::spawn(
                 &client,
-                "cube",
+                primitive_type,
                 [tx, ty, tz],
                 [0.0, 0.0, 0.0, 1.0],
                 [1.0, 1.0, 1.0],
@@ -468,6 +473,6 @@ impl Tool for BevySpawnPrimitiveTool {
         })
         .map_err(|e| anyhow!("Bridge error: {}", e))?;
 
-        Ok(format!("Spawned Cube. Entity ID: {}", response.entity_id))
+        Ok(format!("Spawned {}. Entity ID: {}", primitive_type, response.entity_id))
     }
 }

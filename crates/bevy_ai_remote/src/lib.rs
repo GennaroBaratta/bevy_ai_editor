@@ -65,7 +65,7 @@ fn spawn_primitives(
 ) {
     for (entity, primitive) in query.iter() {
         info!("Hydrating primitive: {:?}", primitive.primitive_type);
-        match primitive.primitive_type.as_str() {
+        match primitive.primitive_type.to_lowercase().as_str() {
             "cube" => {
                 commands.entity(entity).insert((
                     Mesh3d(meshes.add(Cuboid::default())),
@@ -75,6 +75,48 @@ fn spawn_primitives(
             "sphere" => {
                 commands.entity(entity).insert((
                     Mesh3d(meshes.add(Sphere::default())),
+                    MeshMaterial3d(materials.add(Color::srgb(0.8, 0.7, 0.6))),
+                ));
+            }
+            "capsule" => {
+                commands.entity(entity).insert((
+                    Mesh3d(meshes.add(Capsule3d::default())),
+                    MeshMaterial3d(materials.add(Color::srgb(0.8, 0.7, 0.6))),
+                ));
+            }
+            "cylinder" => {
+                commands.entity(entity).insert((
+                    Mesh3d(meshes.add(Cylinder::default())),
+                    MeshMaterial3d(materials.add(Color::srgb(0.8, 0.7, 0.6))),
+                ));
+            }
+            "cone" => {
+                commands.entity(entity).insert((
+                    Mesh3d(meshes.add(Cone::default())),
+                    MeshMaterial3d(materials.add(Color::srgb(0.8, 0.7, 0.6))),
+                ));
+            }
+            "torus" => {
+                commands.entity(entity).insert((
+                    Mesh3d(meshes.add(Torus::default())),
+                    MeshMaterial3d(materials.add(Color::srgb(0.8, 0.7, 0.6))),
+                ));
+            }
+            "plane" => {
+                commands.entity(entity).insert((
+                    Mesh3d(meshes.add(Plane3d::default().mesh().size(5.0, 5.0))),
+                    MeshMaterial3d(materials.add(Color::srgb(0.8, 0.7, 0.6))),
+                ));
+            }
+            "tetrahedron" => {
+                commands.entity(entity).insert((
+                    Mesh3d(meshes.add(Tetrahedron::default())),
+                    MeshMaterial3d(materials.add(Color::srgb(0.8, 0.7, 0.6))),
+                ));
+            }
+            "cuboid" => {
+                commands.entity(entity).insert((
+                    Mesh3d(meshes.add(Cuboid::default())),
                     MeshMaterial3d(materials.add(Color::srgb(0.8, 0.7, 0.6))),
                 ));
             }
