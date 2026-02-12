@@ -7,41 +7,27 @@ pub async fn clear(client: &BrpClient, target: ClearTarget) -> Result<ClearRespo
     
     match target {
         ClearTarget::All => {
-            // Query 1: Find entities with AxiomPrimitive
-            let params_primitives = json!({
+            let params = json!({
                 "data": {
-                    "components": [],
-                    "has": ["bevy_ai_remote::AxiomPrimitive"]
+                    "components": []
+                },
+                "filter": {
+                    "with": ["bevy_ai_remote::AxiomSpawned"]
                 }
             });
-            let result_primitives = client.send_rpc("world.query", Some(params_primitives)).await?;
-            if let Ok(entities_primitives) = result_primitives
+            let result = client.send_rpc("world.query", Some(params)).await?;
+            all_entities = result
                 .as_array()
-                .ok_or_else(|| crate::BrpError::InvalidResponse("Expected array from world.query".into()))
-            {
-                all_entities.extend(entities_primitives.clone());
-            }
-            
-            // Query 2: Find entities with AxiomRemoteAsset
-            let params_assets = json!({
-                "data": {
-                    "components": [],
-                    "has": ["bevy_ai_remote::AxiomRemoteAsset"]
-                }
-            });
-            let result_assets = client.send_rpc("world.query", Some(params_assets)).await?;
-            if let Ok(entities_assets) = result_assets
-                .as_array()
-                .ok_or_else(|| crate::BrpError::InvalidResponse("Expected array from world.query".into()))
-            {
-                all_entities.extend(entities_assets.clone());
-            }
+                .ok_or_else(|| crate::BrpError::InvalidResponse("Expected array from world.query".into()))?
+                .clone();
         }
         ClearTarget::Assets => {
             let params = json!({
                 "data": {
-                    "components": [],
-                    "has": ["bevy_ai_remote::AxiomRemoteAsset"]
+                    "components": []
+                },
+                "filter": {
+                    "with": ["bevy_ai_remote::AxiomRemoteAsset"]
                 }
             });
             let result = client.send_rpc("world.query", Some(params)).await?;
@@ -53,8 +39,10 @@ pub async fn clear(client: &BrpClient, target: ClearTarget) -> Result<ClearRespo
         ClearTarget::Primitives => {
             let params = json!({
                 "data": {
-                    "components": [],
-                    "has": ["bevy_ai_remote::AxiomPrimitive"]
+                    "components": []
+                },
+                "filter": {
+                    "with": ["bevy_ai_remote::AxiomPrimitive"]
                 }
             });
             let result = client.send_rpc("world.query", Some(params)).await?;
@@ -88,13 +76,16 @@ mod tests {
     fn test_clear_query_params_structure() {
         let params = json!({
             "data": {
-                "components": [],
-                "has": ["bevy_ai_remote::AxiomPrimitive"]
+                "components": []
+            },
+            "filter": {
+                "with": ["bevy_ai_remote::AxiomSpawned"]
             }
         });
         assert!(params.get("data").is_some());
-        assert!(params["data"].get("has").is_some());
-        assert!(params["data"]["has"].is_array());
+        assert!(params.get("filter").is_some());
+        assert!(params["filter"].get("with").is_some());
+        assert!(params["filter"]["with"].is_array());
     }
 
     #[test]
@@ -161,18 +152,45 @@ mod tests {
     }
 
     #[test]
-    fn test_clear_has_filter_structure() {
-        let params = json!({
-            "data": {
-                "components": [],
-                "has": ["bevy_ai_remote::AxiomPrimitive", "bevy_ai_remote::AxiomRemoteAsset"]
-            }
+    fn test_clear_filter_with_structure() {
+        // ClearTarget::All query
+        let params_all = json!({
+            "data": { "components": [] },
+            "filter": { "with": ["bevy_ai_remote::AxiomSpawned"] }
         });
-        
-        let has_array = params["data"]["has"].as_array().unwrap();
-        assert_eq!(has_array.len(), 2);
-        assert_eq!(has_array[0].as_str().unwrap(), "bevy_ai_remote::AxiomPrimitive");
-        assert_eq!(has_array[1].as_str().unwrap(), "bevy_ai_remote::AxiomRemoteAsset");
+        let with_array = params_all["filter"]["with"].as_array().unwrap();
+        assert_eq!(with_array.len(), 1);
+        assert_eq!(with_array[0].as_str().unwrap(), "bevy_ai_remote::AxiomSpawned");
+
+        // ClearTarget::Primitives query
+        let params_prim = json!({
+            "data": { "components": [] },
+            "filter": { "with": ["bevy_ai_remote::AxiomPrimitive"] }
+        });
+        let with_prim = params_prim["filter"]["with"].as_array().unwrap();
+        assert_eq!(with_prim[0].as_str().unwrap(), "bevy_ai_remote::AxiomPrimitive");
+
+        // ClearTarget::Assets query
+        let params_asset = json!({
+            "data": { "components": [] },
+            "filter": { "with": ["bevy_ai_remote::AxiomRemoteAsset"] }
+        });
+        let with_asset = params_asset["filter"]["with"].as_array().unwrap();
+        assert_eq!(with_asset[0].as_str().unwrap(), "bevy_ai_remote::AxiomRemoteAsset");
+    }
+
+    #[test]
+    fn test_clear_all_uses_single_axiom_spawned_query() {
+        let params = json!({
+            "data": { "components": [] },
+            "filter": { "with": ["bevy_ai_remote::AxiomSpawned"] }
+        });
+        // ClearTarget::All now uses ONE query with AxiomSpawned
+        // instead of two separate queries for Primitive + Asset
+        let with_array = params["filter"]["with"].as_array().unwrap();
+        assert_eq!(with_array.len(), 1);
+        assert_eq!(with_array[0].as_str().unwrap(), "bevy_ai_remote::AxiomSpawned");
+        // data.has should NOT exist
+        assert!(params["data"].get("has").is_none());
     }
 }
-

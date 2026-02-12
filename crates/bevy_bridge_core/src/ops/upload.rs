@@ -20,6 +20,7 @@ pub async fn upload(
                 "data_base64": b64_data,
                 "subdir": subdir
             },
+            "bevy_ai_remote::AxiomSpawned": {},
             "bevy_transform::components::transform::Transform": {
                 "translation": translation,
                 "rotation": rotation,
@@ -74,6 +75,7 @@ mod tests {
                     "data_base64": b64_data,
                     "subdir": "models"
                 },
+                "bevy_ai_remote::AxiomSpawned": {},
                 "bevy_transform::components::transform::Transform": {
                     "translation": [0.0, 0.0, 0.0],
                     "rotation": [0.0, 0.0, 0.0, 1.0],
@@ -84,6 +86,7 @@ mod tests {
         
         assert!(params.get("components").is_some());
         assert!(params.get("components").unwrap().get("bevy_ai_remote::AxiomRemoteAsset").is_some());
+        assert!(params.get("components").unwrap().get("bevy_ai_remote::AxiomSpawned").is_some());
         assert!(params.get("components").unwrap().get("bevy_transform::components::transform::Transform").is_some());
     }
 
@@ -95,7 +98,8 @@ mod tests {
                     "filename": "model.glb",
                     "data_base64": "abc123",
                     "subdir": "uploads"
-                }
+                },
+                "bevy_ai_remote::AxiomSpawned": {}
             }
         });
         

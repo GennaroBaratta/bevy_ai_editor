@@ -14,6 +14,7 @@ pub async fn spawn(
             "bevy_ai_remote::AxiomPrimitive": {
                 "primitive_type": primitive_type
             },
+            "bevy_ai_remote::AxiomSpawned": {},
             "bevy_transform::components::transform::Transform": {
                 "translation": position,
                 "rotation": rotation,
@@ -44,6 +45,7 @@ mod tests {
                 "bevy_ai_remote::AxiomPrimitive": {
                     "primitive_type": "Cube"
                 },
+                "bevy_ai_remote::AxiomSpawned": {},
                 "bevy_transform::components::transform::Transform": {
                     "translation": [1.0, 2.0, 3.0],
                     "rotation": [0.0, 0.0, 0.0, 1.0],
@@ -54,6 +56,7 @@ mod tests {
         
         assert!(params.get("components").is_some());
         assert!(params.get("components").unwrap().get("bevy_ai_remote::AxiomPrimitive").is_some());
+        assert!(params.get("components").unwrap().get("bevy_ai_remote::AxiomSpawned").is_some());
         assert!(params.get("components").unwrap().get("bevy_transform::components::transform::Transform").is_some());
     }
 
@@ -63,7 +66,8 @@ mod tests {
             "components": {
                 "bevy_ai_remote::AxiomPrimitive": {
                     "primitive_type": "Sphere"
-                }
+                },
+                "bevy_ai_remote::AxiomSpawned": {}
             }
         });
         
@@ -75,6 +79,7 @@ mod tests {
     fn test_spawn_transform_component() {
         let params = json!({
             "components": {
+                "bevy_ai_remote::AxiomSpawned": {},
                 "bevy_transform::components::transform::Transform": {
                     "translation": [10.0, 20.0, 30.0],
                     "rotation": [0.0, 0.7071068, 0.0, 0.7071068],
@@ -96,6 +101,7 @@ mod tests {
         let params = json!({
             "components": {
                 "bevy_ai_remote::AxiomPrimitive": {"primitive_type": "Plane"},
+                "bevy_ai_remote::AxiomSpawned": {},
                 "bevy_transform::components::transform::Transform": {
                     "translation": [0.0, 0.0, 0.0],
                     "rotation": [0.0, 0.0, 0.0, 1.0],
@@ -106,6 +112,7 @@ mod tests {
         
         let components = params.get("components").unwrap();
         assert!(components.as_object().unwrap().contains_key("bevy_ai_remote::AxiomPrimitive"));
+        assert!(components.as_object().unwrap().contains_key("bevy_ai_remote::AxiomSpawned"));
         assert!(components.as_object().unwrap().contains_key("bevy_transform::components::transform::Transform"));
     }
 }

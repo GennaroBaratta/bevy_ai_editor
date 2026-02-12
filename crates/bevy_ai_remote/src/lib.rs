@@ -25,6 +25,11 @@ pub struct AxiomRemoteAsset {
     pub subdir: Option<String>,
 }
 
+/// Unified marker for all entities spawned by the Axiom editor.
+#[derive(Component, Reflect, Default, Debug)]
+#[reflect(Component)]
+pub struct AxiomSpawned;
+
 /// Add this plugin to your Bevy app to enable remote control via Axiom.
 pub struct BevyAiRemotePlugin;
 
@@ -49,6 +54,7 @@ impl Plugin for BevyAiRemotePlugin {
         // Register our custom components
         app.register_type::<AxiomPrimitive>();
         app.register_type::<AxiomRemoteAsset>();
+        app.register_type::<AxiomSpawned>();
 
         // Add systems
         app.add_systems(Update, (spawn_primitives, handle_remote_assets));
@@ -70,54 +76,63 @@ fn spawn_primitives(
                 commands.entity(entity).insert((
                     Mesh3d(meshes.add(Cuboid::default())),
                     MeshMaterial3d(materials.add(Color::srgb(0.8, 0.7, 0.6))),
+                    AxiomSpawned,
                 ));
             }
             "sphere" => {
                 commands.entity(entity).insert((
                     Mesh3d(meshes.add(Sphere::default())),
                     MeshMaterial3d(materials.add(Color::srgb(0.8, 0.7, 0.6))),
+                    AxiomSpawned,
                 ));
             }
             "capsule" => {
                 commands.entity(entity).insert((
                     Mesh3d(meshes.add(Capsule3d::default())),
                     MeshMaterial3d(materials.add(Color::srgb(0.8, 0.7, 0.6))),
+                    AxiomSpawned,
                 ));
             }
             "cylinder" => {
                 commands.entity(entity).insert((
                     Mesh3d(meshes.add(Cylinder::default())),
                     MeshMaterial3d(materials.add(Color::srgb(0.8, 0.7, 0.6))),
+                    AxiomSpawned,
                 ));
             }
             "cone" => {
                 commands.entity(entity).insert((
                     Mesh3d(meshes.add(Cone::default())),
                     MeshMaterial3d(materials.add(Color::srgb(0.8, 0.7, 0.6))),
+                    AxiomSpawned,
                 ));
             }
             "torus" => {
                 commands.entity(entity).insert((
                     Mesh3d(meshes.add(Torus::default())),
                     MeshMaterial3d(materials.add(Color::srgb(0.8, 0.7, 0.6))),
+                    AxiomSpawned,
                 ));
             }
             "plane" => {
                 commands.entity(entity).insert((
                     Mesh3d(meshes.add(Plane3d::default().mesh().size(5.0, 5.0))),
                     MeshMaterial3d(materials.add(Color::srgb(0.8, 0.7, 0.6))),
+                    AxiomSpawned,
                 ));
             }
             "tetrahedron" => {
                 commands.entity(entity).insert((
                     Mesh3d(meshes.add(Tetrahedron::default())),
                     MeshMaterial3d(materials.add(Color::srgb(0.8, 0.7, 0.6))),
+                    AxiomSpawned,
                 ));
             }
             "cuboid" => {
                 commands.entity(entity).insert((
                     Mesh3d(meshes.add(Cuboid::default())),
                     MeshMaterial3d(materials.add(Color::srgb(0.8, 0.7, 0.6))),
+                    AxiomSpawned,
                 ));
             }
             _ => {
@@ -214,10 +229,13 @@ fn handle_remote_assets(
             info!("Loading scene from: {}", scene_path);
             let scene_handle: Handle<Scene> = asset_server.load(scene_path);
             // 5. Attach SceneRoot to the entity
-            commands.entity(entity).insert(SceneRoot(scene_handle));
+            commands
+                .entity(entity)
+                .insert((SceneRoot(scene_handle), AxiomSpawned));
         } else {
             info!("Saved auxiliary asset (texture/bin), not spawning SceneRoot.");
             // Just cleanup the component so it doesn't stay on the entity forever
+            commands.entity(entity).insert(AxiomSpawned);
             commands.entity(entity).remove::<AxiomRemoteAsset>();
             // Also despawn the entity itself if it has no other components, to keep hierarchy clean
             // commands.entity(entity).despawn();
