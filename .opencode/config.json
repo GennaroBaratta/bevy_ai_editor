@@ -8,6 +8,14 @@
         "BRP_ENDPOINT": "http://127.0.0.1:15721",
         "RUST_LOG": "off"
       }
+    },
+    "debugger": {
+      "type": "local",
+      "command": ["./target/debug/debugger_mcp_server"],
+      "environment": {
+        "CODELLDB_ADAPTER_PATH": "/absolute/path/to/codelldb",
+        "RUST_LOG": "off"
+      }
     }
   },
   "tools": {

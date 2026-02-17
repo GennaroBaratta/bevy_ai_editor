@@ -2,9 +2,13 @@ use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use bevy::prelude::*;
 use bevy_remote::{http::RemoteHttpPlugin, RemotePlugin};
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "debug_probe")]
+use std::cell::UnsafeCell;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
+#[cfg(feature = "debug_probe")]
+use std::sync::atomic::{compiler_fence, AtomicU64, AtomicUsize, Ordering};
 
 /// Component to tag entities that should be rendered as a primitive shape.
 #[derive(Component, Reflect, Default, Debug, Serialize, Deserialize)]
@@ -29,6 +33,43 @@ pub struct AxiomRemoteAsset {
 #[derive(Component, Reflect, Default, Debug)]
 #[reflect(Component)]
 pub struct AxiomSpawned;
+
+#[cfg(feature = "debug_probe")]
+pub const AXIOM_DEBUG_SNAPSHOT_CAPACITY: usize = 4096;
+
+#[cfg(feature = "debug_probe")]
+#[repr(C)]
+pub struct AxiomDebugProbeState {
+    pub frame_counter: AtomicU64,
+    pub snapshot_len: AtomicUsize,
+    pub snapshot_bytes: UnsafeCell<[u8; AXIOM_DEBUG_SNAPSHOT_CAPACITY]>,
+}
+
+#[cfg(feature = "debug_probe")]
+impl AxiomDebugProbeState {
+    const fn new() -> Self {
+        Self {
+            frame_counter: AtomicU64::new(0),
+            snapshot_len: AtomicUsize::new(0),
+            snapshot_bytes: UnsafeCell::new([0; AXIOM_DEBUG_SNAPSHOT_CAPACITY]),
+        }
+    }
+}
+
+#[cfg(feature = "debug_probe")]
+unsafe impl Sync for AxiomDebugProbeState {}
+
+#[cfg(feature = "debug_probe")]
+#[no_mangle]
+pub static AXIOM_DEBUG_PROBE_STATE: AxiomDebugProbeState = AxiomDebugProbeState::new();
+
+#[cfg(all(feature = "debug_probe", debug_assertions))]
+#[inline(never)]
+#[no_mangle]
+pub extern "C" fn axiom_debug_safe_point(frame_index: u64, entity_count: u64, snapshot_len: usize) {
+    let _ = (frame_index, entity_count, snapshot_len);
+    compiler_fence(Ordering::SeqCst);
+}
 
 /// Add this plugin to your Bevy app to enable remote control via Axiom.
 pub struct BevyAiRemotePlugin;
@@ -59,8 +100,44 @@ impl Plugin for BevyAiRemotePlugin {
         // Add systems
         app.add_systems(Update, (spawn_primitives, handle_remote_assets));
 
+        #[cfg(feature = "debug_probe")]
+        app.add_systems(Update, debug_probe_safe_point_anchor);
+
         info!("Bevy AI Remote Plugin initialized on port 15721");
     }
+}
+
+#[cfg(feature = "debug_probe")]
+fn debug_probe_safe_point_anchor(world: &mut World) {
+    let frame_index = AXIOM_DEBUG_PROBE_STATE
+        .frame_counter
+        .fetch_add(1, Ordering::Relaxed)
+        + 1;
+    let entity_count = world.entities().len();
+    let snapshot = format!(
+        "{{\"frame_index\":{},\"entity_count\":{},\"resource_summaries\":[],\"warnings\":[\"resource summaries unavailable in debug probe\"]}}",
+        frame_index, entity_count
+    );
+    let snapshot_len = write_debug_probe_snapshot(snapshot.as_bytes());
+
+    #[cfg(debug_assertions)]
+    axiom_debug_safe_point(frame_index, entity_count as u64, snapshot_len);
+}
+
+#[cfg(feature = "debug_probe")]
+fn write_debug_probe_snapshot(snapshot: &[u8]) -> usize {
+    let snapshot_len = snapshot.len().min(AXIOM_DEBUG_SNAPSHOT_CAPACITY);
+    unsafe {
+        let output = &mut *AXIOM_DEBUG_PROBE_STATE.snapshot_bytes.get();
+        output[..snapshot_len].copy_from_slice(&snapshot[..snapshot_len]);
+        if snapshot_len < output.len() {
+            output[snapshot_len] = 0;
+        }
+    }
+    AXIOM_DEBUG_PROBE_STATE
+        .snapshot_len
+        .store(snapshot_len, Ordering::Release);
+    snapshot_len
 }
 
 fn spawn_primitives(

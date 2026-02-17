@@ -3,8 +3,8 @@ members = [
     "crates/bevy_ai_remote",
     "crates/bevy_bridge_core",
     "crates/bevy_mcp_server",
+    "crates/debugger_mcp_server",
     "apps/axiom",
     "examples/simple_game"
 ]
 resolver = "2"
-

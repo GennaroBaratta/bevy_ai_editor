@@ -40,6 +40,41 @@ impl BrpConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::{Mutex, OnceLock};
+
+    static ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+
+    struct EnvRestoreGuard {
+        _env_lock: std::sync::MutexGuard<'static, ()>,
+        endpoint: Option<String>,
+        timeout_ms: Option<String>,
+    }
+
+    impl EnvRestoreGuard {
+        fn acquire() -> Self {
+            let env_lock = ENV_LOCK.get_or_init(|| Mutex::new(()));
+
+            Self {
+                _env_lock: env_lock.lock().expect("failed to acquire env lock"),
+                endpoint: std::env::var("BRP_ENDPOINT").ok(),
+                timeout_ms: std::env::var("BRP_TIMEOUT_MS").ok(),
+            }
+        }
+    }
+
+    impl Drop for EnvRestoreGuard {
+        fn drop(&mut self) {
+            match &self.endpoint {
+                Some(value) => unsafe { std::env::set_var("BRP_ENDPOINT", value) },
+                None => unsafe { std::env::remove_var("BRP_ENDPOINT") },
+            }
+
+            match &self.timeout_ms {
+                Some(value) => unsafe { std::env::set_var("BRP_TIMEOUT_MS", value) },
+                None => unsafe { std::env::remove_var("BRP_TIMEOUT_MS") },
+            }
+        }
+    }
 
     #[test]
     fn test_default_config() {
@@ -57,8 +92,9 @@ mod tests {
 
     #[test]
     fn test_from_env_defaults() {
-        std::env::remove_var("BRP_ENDPOINT");
-        std::env::remove_var("BRP_TIMEOUT_MS");
+        let _guard = EnvRestoreGuard::acquire();
+        unsafe { std::env::remove_var("BRP_ENDPOINT") };
+        unsafe { std::env::remove_var("BRP_TIMEOUT_MS") };
 
         let config = BrpConfig::from_env();
         assert_eq!(config.endpoint, "http://127.0.0.1:15721");
@@ -67,14 +103,12 @@ mod tests {
 
     #[test]
     fn test_from_env_custom() {
-        std::env::set_var("BRP_ENDPOINT", "http://custom:9999");
-        std::env::set_var("BRP_TIMEOUT_MS", "5000");
+        let _guard = EnvRestoreGuard::acquire();
+        unsafe { std::env::set_var("BRP_ENDPOINT", "http://custom:9999") };
+        unsafe { std::env::set_var("BRP_TIMEOUT_MS", "5000") };
 
         let config = BrpConfig::from_env();
         assert_eq!(config.endpoint, "http://custom:9999");
         assert_eq!(config.timeout, Duration::from_millis(5000));
-
-        std::env::remove_var("BRP_ENDPOINT");
-        std::env::remove_var("BRP_TIMEOUT_MS");
     }
 }

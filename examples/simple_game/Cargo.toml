@@ -6,4 +6,4 @@ edition = "2021"
 [dependencies]
 bevy = { version = "0.18", default-features = true }
 bevy_remote = "0.18"
-bevy_ai_remote = { path = "../../crates/bevy_ai_remote" }
+bevy_ai_remote = { path = "../../crates/bevy_ai_remote", features = ["debug_probe"] }

@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy::winit::WinitSettings;
 use bevy_ai_remote::BevyAiRemotePlugin;
 
 use bevy::window::WindowResolution;
@@ -13,6 +14,7 @@ fn main() {
             }),
             ..default()
         }))
+        .insert_resource(WinitSettings::continuous())
         .add_plugins(BevyAiRemotePlugin)
         .add_systems(Startup, setup)
         .add_systems(Update, (draw_gizmos, camera_controller))
