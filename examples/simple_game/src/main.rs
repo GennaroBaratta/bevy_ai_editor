@@ -1,23 +1,35 @@
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
-use bevy_ai_remote::BevyAiRemotePlugin;
+// use bevy_ai_remote::BevyAiRemotePlugin;
 
 use bevy::window::WindowResolution;
 
+mod player;
+use crate::player::PlayerPlugin;
+
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                title: "Simple Game (AI Host)".to_string(),
-                resolution: WindowResolution::new(800, 600),
-                ..default()
-            }),
-            ..default()
-        }))
-        .insert_resource(WinitSettings::continuous())
-        .add_plugins(BevyAiRemotePlugin)
+        .insert_resource(ClearColor(Color::WHITE))
+        .add_plugins(
+            DefaultPlugins
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        title: "Simple Game (AI Host)".to_string(),
+                        resolution: WindowResolution::new(800, 600),
+                        ..default()
+                    }),
+                    ..default()
+                })
+                .set(AssetPlugin {
+                    file_path: "assets".into(),
+                    ..default()
+                }),
+        )
+        .insert_resource(WinitSettings::game())
+        // .add_plugins(BevyAiRemotePlugin)
         .add_systems(Startup, setup)
-        .add_systems(Update, (draw_gizmos, camera_controller))
+        .add_plugins(PlayerPlugin)
+        // .add_systems(Update, (draw_gizmos, camera_controller))
         .run();
 }
 
@@ -102,7 +114,7 @@ fn setup(
 ) {
     // Camera
     commands.spawn((
-        Camera3d::default(),
+        Camera2d::default(),
         Transform::from_xyz(0.0, 5.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
     ));
 
@@ -117,12 +129,11 @@ fn setup(
     ));
 
     // Plane
-    /*
+
     commands.spawn((
         Mesh3d(meshes.add(Plane3d::default().mesh().size(5.0, 5.0))),
         MeshMaterial3d(materials.add(Color::srgb(0.3, 0.5, 0.3))),
     ));
-    */
 
     println!("Simple Game Running with AI Remote Control...");
 }
